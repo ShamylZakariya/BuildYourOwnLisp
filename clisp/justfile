@@ -1,0 +1,18 @@
+clean:
+    meson compile --clean -C builddir
+
+build:
+    meson setup --buildtype=debug builddir
+    meson compile --clean -C builddir
+    meson compile -C builddir
+    ln -sf builddir/clisp ./clisp
+
+build-release:
+    meson setup --buildtype=release release
+    meson compile --clean -C release
+    meson compile -C release
+    ln -sf release/clisp ./clisp
+
+format:
+    find ./ \( -iname "*.h" -or -iname "*.c" \) | xargs clang-format -i -style=file
+    find ./libclisp \( -iname "*.h" -or -iname "*.c" \) | xargs clang-format -i -style=file
