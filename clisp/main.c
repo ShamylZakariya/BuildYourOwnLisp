@@ -7,20 +7,7 @@
 
 int main(int argc, char** argv)
 {
-    // define polish notation grammar
-    mpc_parser_t* Number = mpc_new("number");
-    mpc_parser_t* Operator = mpc_new("operator");
-    mpc_parser_t* Expr = mpc_new("expr");
-    mpc_parser_t* Lispy = mpc_new("lispy");
-
-    mpca_lang(MPCA_LANG_DEFAULT,
-        "                                                  \
-        number   : /-?[0-9]+/;                             \
-        operator : '+' | '-' | '*' | '/';                  \
-        expr     : <number> | '(' <operator> <expr>+ ')' ; \
-        lispy    : /^/ <operator> <expr>+ /$/;             \
-    ",
-        Number, Operator, Expr, Lispy);
+    Grammar grammar = grammar_create();
 
     puts("Lispy Version 0.0.0.0.1");
     puts("Press Ctrl+c to Exit\n");
@@ -30,8 +17,9 @@ int main(int argc, char** argv)
         add_history(input);
 
         mpc_result_t r;
-        if (mpc_parse("<stdin>", input, Lispy, &r)) {
-            mpc_ast_print(r.output);
+        if (mpc_parse("<stdin>", input, grammar.Lispy, &r)) {
+            long result = eval(r.output);
+            printf("%li\n", result);
             mpc_ast_delete(r.output);
         } else {
             mpc_err_print(r.error);
@@ -41,6 +29,6 @@ int main(int argc, char** argv)
         free(input);
     }
 
-    mpc_cleanup(4, Number, Operator, Expr, Lispy);
+    grammar_cleanup(&grammar);
     return 0;
 }
