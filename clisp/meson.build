@@ -1,6 +1,8 @@
 project('clisp', 'c', version: '0.1', default_options : [
     'c_std=c11'])
 
+# external dependencies
+deps = [dependency('libedit', required: true)]
 
 # defines clisp_lib
 subdir('libclisp')
@@ -12,4 +14,5 @@ app_sources = [
 
 executable('clisp',
     sources: app_sources,
-    link_with: clisp_lib)
+    link_with: clisp_lib,
+    dependencies: deps)
