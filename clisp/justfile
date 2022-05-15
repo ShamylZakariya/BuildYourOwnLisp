@@ -14,5 +14,5 @@ build-release:
     ln -sf release/clisp ./clisp
 
 format:
-    find ./ \( -iname "*.h" -or -iname "*.c" \) | xargs clang-format -i -style=file
+    clang-format -i -style=file main.c
     find ./libclisp \( -iname "*.h" -or -iname "*.c" \) | xargs clang-format -i -style=file
