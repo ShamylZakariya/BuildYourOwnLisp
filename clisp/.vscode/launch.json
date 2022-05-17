@@ -10,7 +10,8 @@
             "name": "Debug",
             "program": "${workspaceFolder}/builddir/clisp",
             "args": [],
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Meson: Build all targets"
         }
     ]
 }
