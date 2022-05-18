@@ -39,6 +39,7 @@ lval* lval_read_num(mpc_ast_t* t);
 lval* lval_read(mpc_ast_t* t);
 lval* lval_pop(lval* v, int i);
 lval* lval_take(lval* v, int i);
+lval* lval_join(lval* x, lval* y);
 void lval_del(lval* v);
 void lval_print(lval* v);
 void lval_println(lval* v);

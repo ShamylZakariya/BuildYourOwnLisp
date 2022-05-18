@@ -3,6 +3,61 @@
 
 #include "libclisp.h"
 
+#define LASSERT(args, cond, err) \
+    if (!(cond)) {               \
+        lval_del(args);          \
+        return lval_err(err);    \
+    }
+
+static lval* builtin_head(lval* a)
+{
+    // error check
+    LASSERT(a, a->count == 1, "Function 'head' takes one arg");
+    LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function 'head' takes qexpr only");
+    LASSERT(a, a->cell[0]->count != 0, "Function 'head' received empty qexpr");
+
+    // we're good, take first arg
+    lval* v = lval_take(a, 0);
+
+    // delete elements which aren't head
+    while (v->count > 1) {
+        lval_del(lval_pop(v, 1));
+    }
+    return v;
+}
+
+static lval* builtin_tail(lval* a)
+{
+    // error check
+    LASSERT(a, a->count == 1, "Function 'tail' takes one arg");
+    LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function 'tail' takes qexpr only");
+    LASSERT(a, a->cell[0]->count != 0, "Function 'tail' received empty qexpr");
+
+    // take first arg
+    lval* v = lval_take(a, 0);
+
+    // delete frist arg, and return rest
+    lval_del(lval_pop(v, 0));
+
+    return v;
+}
+
+static lval* builtin_list(lval* a)
+{
+    a->type = LVAL_QEXPR;
+    return a;
+}
+
+static lval* builtin_eval(lval* a)
+{
+    LASSERT(a, a->count == 1, "Function 'eval' takes one arg");
+    LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function 'eval' takes qexpr only.");
+
+    lval* x = lval_take(a, 0);
+    x->type = LVAL_SEXPR;
+    return lval_eval(x);
+}
+
 static lval* builtin_op(lval* a, char* op)
 {
     // ensure all args are numeric
@@ -50,6 +105,43 @@ static lval* builtin_op(lval* a, char* op)
     }
     lval_del(a);
     return x;
+}
+
+static lval* builtin_join(lval* a)
+{
+    for (int i = 0; i < a->count; i++) {
+        LASSERT(a, a->cell[i]->type == LVAL_QEXPR, "Function 'join' only accepts qexprs");
+    }
+    lval* x = lval_pop(a, 0);
+    while (a->count) {
+        x = lval_join(x, lval_pop(a, 0));
+    }
+    lval_del(a);
+    return x;
+}
+
+static lval* builtin(lval* a, char* func)
+{
+    if (strcmp("list", func) == 0) {
+        return builtin_list(a);
+    }
+    if (strcmp("head", func) == 0) {
+        return builtin_head(a);
+    }
+    if (strcmp("tail", func) == 0) {
+        return builtin_tail(a);
+    }
+    if (strcmp("join", func) == 0) {
+        return builtin_join(a);
+    }
+    if (strcmp("eval", func) == 0) {
+        return builtin_eval(a);
+    }
+    if (strstr("+-/*%", func)) {
+        return builtin_op(a, func);
+    }
+    lval_del(a);
+    return lval_err("Unrecognized function");
 }
 
 static void lval_expr_print(lval* v, char open, char close)
@@ -189,6 +281,16 @@ lval* lval_take(lval* v, int i)
     return x;
 }
 
+lval* lval_join(lval* x, lval* y)
+{
+    // for each cell in y, add it to x
+    while (y->count) {
+        x = lval_add(x, lval_pop(y, 0));
+    }
+    lval_del(y);
+    return x;
+}
+
 void lval_del(lval* v)
 {
     switch (v->type) {
@@ -251,13 +353,14 @@ Grammar grammar_create()
     grammar.Lispy = mpc_new("lispy");
 
     mpca_lang(MPCA_LANG_DEFAULT,
-        "                                                   \
-        number   : /-?[0-9]+/ ;                              \
-        symbol   : '+' | '-' | '*' | '/' | '%' ;             \
-        sexpr    : '(' <expr>* ')' ;                         \
-        qexpr    : '{' <expr>* '}' ;                         \
-        expr     : <number> | <symbol> | <sexpr> | <qexpr> ; \
-        lispy    : /^/ <expr>* /$/ ;                         \
+        "                                                               \
+        number   : /-?[0-9]+/ ;                                         \
+        symbol   : \"list\" | \"head\" | \"tail\" | \"join\" | \"eval\" \
+        | '+' | '-' | '*' | '/' | '%' ;                                 \
+        sexpr    : '(' <expr>* ')' ;                                    \
+        qexpr    : '{' <expr>* '}' ;                                    \
+        expr     : <number> | <symbol> | <sexpr> | <qexpr> ;            \
+        lispy    : /^/ <expr>* /$/ ;                                    \
     ",
         grammar.Number, grammar.Symbol, grammar.Sexpr, grammar.Qexpr, grammar.Expr, grammar.Lispy);
     return grammar;
@@ -316,7 +419,7 @@ lval* lval_eval_sexpr(lval* v)
     }
 
     // call builtin
-    lval* result = builtin_op(v, f->sym);
+    lval* result = builtin(v, f->sym);
     lval_del(f);
     return result;
 }
