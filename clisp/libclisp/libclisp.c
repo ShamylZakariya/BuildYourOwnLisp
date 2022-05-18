@@ -92,6 +92,15 @@ lval* lval_sexpr()
     return v;
 }
 
+lval* lval_qexpr()
+{
+    lval* v = malloc(sizeof(lval));
+    v->type = LVAL_QEXPR;
+    v->count = 0;
+    v->cell = NULL;
+    return v;
+}
+
 lval* lval_err(char* message)
 {
     lval* v = malloc(sizeof(lval));
@@ -134,12 +143,21 @@ lval* lval_read(mpc_ast_t* t)
         // root node of ast is marked with >
         x = lval_sexpr();
     }
+    if (strstr(t->tag, "qexpr")) {
+        x = lval_qexpr();
+    }
 
     for (int i = 0; i < t->children_num; i++) {
         if (strcmp(t->children[i]->contents, "(") == 0) {
             continue;
         }
         if (strcmp(t->children[i]->contents, ")") == 0) {
+            continue;
+        }
+        if (strcmp(t->children[i]->contents, "{") == 0) {
+            continue;
+        }
+        if (strcmp(t->children[i]->contents, "}") == 0) {
             continue;
         }
         if (strcmp(t->children[i]->tag, "regex") == 0) {
@@ -182,6 +200,7 @@ void lval_del(lval* v)
     case LVAL_SYM:
         free(v->sym);
         break;
+    case LVAL_QEXPR:
     case LVAL_SEXPR: {
         for (int i = 0; i < v->count; i++) {
             lval_del(v->cell[i]);
@@ -208,6 +227,9 @@ void lval_print(lval* v)
     case LVAL_SEXPR:
         lval_expr_print(v, '(', ')');
         break;
+    case LVAL_QEXPR:
+        lval_expr_print(v, '{', '}');
+        break;
     }
 }
 
@@ -224,27 +246,30 @@ Grammar grammar_create()
     grammar.Number = mpc_new("number");
     grammar.Symbol = mpc_new("symbol");
     grammar.Sexpr = mpc_new("sexpr");
+    grammar.Qexpr = mpc_new("qexpr");
     grammar.Expr = mpc_new("expr");
     grammar.Lispy = mpc_new("lispy");
 
     mpca_lang(MPCA_LANG_DEFAULT,
-        "                                                  \
-        number   : /-?[0-9]+/;                             \
-        symbol   : '+' | '-' | '*' | '/' | '%';            \
-        sexpr    : '(' <expr>* ')';                        \
-        expr     : <number> | <symbol> | <sexpr> ;         \
-        lispy    : /^/ <expr>* /$/;             \
+        "                                                   \
+        number   : /-?[0-9]+/ ;                              \
+        symbol   : '+' | '-' | '*' | '/' | '%' ;             \
+        sexpr    : '(' <expr>* ')' ;                         \
+        qexpr    : '{' <expr>* '}' ;                         \
+        expr     : <number> | <symbol> | <sexpr> | <qexpr> ; \
+        lispy    : /^/ <expr>* /$/ ;                         \
     ",
-        grammar.Number, grammar.Symbol, grammar.Sexpr, grammar.Expr, grammar.Lispy);
+        grammar.Number, grammar.Symbol, grammar.Sexpr, grammar.Qexpr, grammar.Expr, grammar.Lispy);
     return grammar;
 }
 
 void grammar_cleanup(Grammar* grammar)
 {
-    mpc_cleanup(5, grammar->Number, grammar->Symbol, grammar->Sexpr, grammar->Expr, grammar->Lispy);
+    mpc_cleanup(6, grammar->Number, grammar->Symbol, grammar->Sexpr, grammar->Qexpr, grammar->Expr, grammar->Lispy);
     grammar->Number = NULL;
     grammar->Symbol = NULL;
     grammar->Sexpr = NULL;
+    grammar->Qexpr = NULL;
     grammar->Expr = NULL;
     grammar->Lispy = NULL;
 }

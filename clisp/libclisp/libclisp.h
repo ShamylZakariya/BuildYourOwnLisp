@@ -7,14 +7,18 @@ typedef struct {
     mpc_parser_t* Number;
     mpc_parser_t* Symbol;
     mpc_parser_t* Sexpr;
+    mpc_parser_t* Qexpr;
     mpc_parser_t* Expr;
     mpc_parser_t* Lispy;
 } Grammar;
 
-enum { LVAL_ERR,
+enum {
+    LVAL_ERR,
     LVAL_NUM,
     LVAL_SYM,
-    LVAL_SEXPR };
+    LVAL_SEXPR,
+    LVAL_QEXPR
+};
 
 typedef struct lval {
     int type;
@@ -28,6 +32,7 @@ typedef struct lval {
 lval* lval_num(long x);
 lval* lval_sym(char* s);
 lval* lval_sexpr();
+lval* lval_qexpr();
 lval* lval_err(char* message);
 lval* lval_add(lval* v, lval* x);
 lval* lval_read_num(mpc_ast_t* t);
