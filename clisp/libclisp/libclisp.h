@@ -23,6 +23,8 @@ enum {
     LVAL_QEXPR
 };
 
+char* ltype_name(int t);
+
 typedef struct lval {
     int type;
 
@@ -41,7 +43,7 @@ lval* lval_sym(char* s);
 lval* lval_sexpr();
 lval* lval_qexpr();
 lval* lval_fun(lbuiltin fun);
-lval* lval_err(char* message);
+lval* lval_err(char* fmt, ...);
 lval* lval_add(lval* v, lval* x);
 lval* lval_read_num(mpc_ast_t* t);
 lval* lval_read(mpc_ast_t* t);
