@@ -6,7 +6,15 @@
 			"mode": "build",
 			"group": "build",
 			"problemMatcher": [],
-			"label": "Meson: Build all targets"
+			"label": "Meson: Build all targets",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": true
+			}
 		}
 	]
 }

@@ -158,9 +158,21 @@ static void lval_expr_print(lval* v, char open, char close)
 
 ///////////////////////////////////////////////////////////////////////
 
-lval* lval_num(long x)
+static lval* lval_new()
 {
     lval* v = malloc(sizeof(lval));
+    v->type = 0;
+    v->num = 0;
+    v->err = NULL;
+    v->sym = NULL;
+    v->count = 0;
+    v->cell = NULL;
+    return v;
+}
+
+lval* lval_num(long x)
+{
+    lval* v = lval_new();
     v->type = LVAL_NUM;
     v->num = x;
     return v;
@@ -168,7 +180,7 @@ lval* lval_num(long x)
 
 lval* lval_sym(char* s)
 {
-    lval* v = malloc(sizeof(lval));
+    lval* v = lval_new();
     v->type = LVAL_SYM;
     v->sym = malloc(strlen(s) + 1);
     strcpy(v->sym, s);
@@ -177,7 +189,7 @@ lval* lval_sym(char* s)
 
 lval* lval_sexpr()
 {
-    lval* v = malloc(sizeof(lval));
+    lval* v = lval_new();
     v->type = LVAL_SEXPR;
     v->count = 0;
     v->cell = NULL;
@@ -186,7 +198,7 @@ lval* lval_sexpr()
 
 lval* lval_qexpr()
 {
-    lval* v = malloc(sizeof(lval));
+    lval* v = lval_new();
     v->type = LVAL_QEXPR;
     v->count = 0;
     v->cell = NULL;
@@ -195,7 +207,7 @@ lval* lval_qexpr()
 
 lval* lval_err(char* message)
 {
-    lval* v = malloc(sizeof(lval));
+    lval* v = lval_new();
     v->type = LVAL_ERR;
     v->err = malloc(strlen(message) + 1);
     strcpy(v->err, message);
