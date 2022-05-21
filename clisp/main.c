@@ -7,7 +7,7 @@
 
 int main(int argc, char** argv)
 {
-    Grammar grammar = grammar_create();
+    lgrammar* grammar = lgrammar_new();
 
     puts("Lispy Version 0.0.0.0.1");
     puts("Press Ctrl+c to Exit\n");
@@ -17,7 +17,7 @@ int main(int argc, char** argv)
         add_history(input);
 
         mpc_result_t r;
-        if (mpc_parse("<stdin>", input, grammar.Lispy, &r)) {
+        if (mpc_parse("<stdin>", input, grammar->lispy, &r)) {
             lval* x = lval_read(r.output);
             x = lval_eval(x);
             lval_println(x);
@@ -31,6 +31,6 @@ int main(int argc, char** argv)
         free(input);
     }
 
-    grammar_cleanup(&grammar);
+    lgrammar_del(grammar);
     return 0;
 }

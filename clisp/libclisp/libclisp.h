@@ -3,14 +3,7 @@
 
 #include "../libmpc/mpc.h"
 
-typedef struct {
-    mpc_parser_t* Number;
-    mpc_parser_t* Symbol;
-    mpc_parser_t* Sexpr;
-    mpc_parser_t* Qexpr;
-    mpc_parser_t* Expr;
-    mpc_parser_t* Lispy;
-} Grammar;
+///////////////////////////////////////////////////////////////////////
 
 enum {
     LVAL_ERR,
@@ -44,8 +37,21 @@ void lval_del(lval* v);
 void lval_print(lval* v);
 void lval_println(lval* v);
 
-Grammar grammar_create();
-void grammar_cleanup(Grammar* grammar);
+///////////////////////////////////////////////////////////////////////
+
+typedef struct {
+    mpc_parser_t* number;
+    mpc_parser_t* symbol;
+    mpc_parser_t* sexpr;
+    mpc_parser_t* qexpr;
+    mpc_parser_t* expr;
+    mpc_parser_t* lispy;
+} lgrammar;
+
+lgrammar* lgrammar_new();
+void lgrammar_del(lgrammar* grammar);
+
+///////////////////////////////////////////////////////////////////////
 
 lval* lval_eval(lval* v);
 lval* lval_eval_sexpr(lval* v);

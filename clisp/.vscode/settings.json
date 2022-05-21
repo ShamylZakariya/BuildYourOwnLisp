@@ -2,6 +2,10 @@
     "files.associations": {
         "stdio.h": "c",
         "editline.h": "c",
-        "readline.h": "c"
+        "readline.h": "c",
+        "array": "c",
+        "memory_resource": "c",
+        "initializer_list": "c",
+        "limits": "c"
     }
 }

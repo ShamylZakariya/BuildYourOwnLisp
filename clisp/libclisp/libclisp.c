@@ -353,16 +353,17 @@ void lval_println(lval* v)
     putchar('\n');
 }
 
-Grammar grammar_create()
+///////////////////////////////////////////////////////////////////////
+
+lgrammar* lgrammar_new()
 {
-    // define polish notation grammar
-    Grammar grammar;
-    grammar.Number = mpc_new("number");
-    grammar.Symbol = mpc_new("symbol");
-    grammar.Sexpr = mpc_new("sexpr");
-    grammar.Qexpr = mpc_new("qexpr");
-    grammar.Expr = mpc_new("expr");
-    grammar.Lispy = mpc_new("lispy");
+    lgrammar* g = malloc(sizeof(lgrammar));
+    g->number = mpc_new("number");
+    g->symbol = mpc_new("symbol");
+    g->sexpr = mpc_new("sexpr");
+    g->qexpr = mpc_new("qexpr");
+    g->expr = mpc_new("expr");
+    g->lispy = mpc_new("lispy");
 
     mpca_lang(MPCA_LANG_DEFAULT,
         "                                                               \
@@ -374,20 +375,17 @@ Grammar grammar_create()
         expr     : <number> | <symbol> | <sexpr> | <qexpr> ;            \
         lispy    : /^/ <expr>* /$/ ;                                    \
     ",
-        grammar.Number, grammar.Symbol, grammar.Sexpr, grammar.Qexpr, grammar.Expr, grammar.Lispy);
-    return grammar;
+        g->number, g->symbol, g->sexpr, g->qexpr, g->expr, g->lispy);
+    return g;
 }
 
-void grammar_cleanup(Grammar* grammar)
+void lgrammar_del(lgrammar* g)
 {
-    mpc_cleanup(6, grammar->Number, grammar->Symbol, grammar->Sexpr, grammar->Qexpr, grammar->Expr, grammar->Lispy);
-    grammar->Number = NULL;
-    grammar->Symbol = NULL;
-    grammar->Sexpr = NULL;
-    grammar->Qexpr = NULL;
-    grammar->Expr = NULL;
-    grammar->Lispy = NULL;
+    mpc_cleanup(6, g->number, g->symbol, g->sexpr, g->qexpr, g->expr, g->lispy);
+    free(g);
 }
+
+///////////////////////////////////////////////////////////////////////
 
 lval* lval_eval(lval* v)
 {
