@@ -145,6 +145,29 @@ static lval* builtin_mod(lenv* e, lval* a)
     return builtin_op(e, a, "%");
 }
 
+static lval* builtin_def(lenv* e, lval* a)
+{
+    LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function 'def' only accepts Q-exprs");
+
+    // first arg is symbol list
+    lval* syms = a->cell[0];
+
+    // ensure all elements of list are symbols
+    for (int i = 0; i < syms->count; i++) {
+        LASSERT(a, syms->cell[i]->type == LVAL_SYM, "Function 'def' cannot define a non-symbol");
+    }
+
+    LASSERT(a, syms->count == a->count - 1, "Function 'def' expects equal count of symbols to values");
+
+    // assign copies of values to symbols
+    for (int i = 0; i < syms->count; i++) {
+        lenv_put(e, syms->cell[i], a->cell[i + 1]);
+    }
+
+    lval_del(a);
+    return lval_sexpr();
+}
+
 static void lval_expr_print(lval* v, char open, char close)
 {
     putchar(open);
@@ -476,6 +499,9 @@ void lenv_add_default_builtins(lenv* e)
     lenv_add_builtin(e, "*", builtin_mul);
     lenv_add_builtin(e, "/", builtin_div);
     lenv_add_builtin(e, "%", builtin_mod);
+
+    // user definitions
+    lenv_add_builtin(e, "def", builtin_def);
 }
 
 ///////////////////////////////////////////////////////////////////////
