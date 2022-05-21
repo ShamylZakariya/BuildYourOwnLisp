@@ -8,6 +8,8 @@
 int main(int argc, char** argv)
 {
     lgrammar* grammar = lgrammar_new();
+    lenv* env = lenv_new();
+    lenv_add_default_builtins(env);
 
     puts("Lispy Version 0.0.0.0.1");
     puts("Press Ctrl+c to Exit\n");
@@ -19,8 +21,9 @@ int main(int argc, char** argv)
         mpc_result_t r;
         if (mpc_parse("<stdin>", input, grammar->lispy, &r)) {
             lval* x = lval_read(r.output);
-            x = lval_eval(x);
+            x = lval_eval(env, x);
             lval_println(x);
+
             lval_del(x);
             mpc_ast_delete(r.output);
         } else {
@@ -31,6 +34,7 @@ int main(int argc, char** argv)
         free(input);
     }
 
+    lenv_del(env);
     lgrammar_del(grammar);
     return 0;
 }
