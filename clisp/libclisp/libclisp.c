@@ -713,7 +713,7 @@ void lenv_add_builtin(lenv* e, char* name, lbuiltin func)
     lval_del(v);
 }
 
-void lenv_add_default_builtins(lenv* e)
+void lenv_add_default_builtins(lenv* e, lgrammar* g)
 {
     // List Functions
     lenv_add_builtin(e, "list", builtin_list);
@@ -733,6 +733,23 @@ void lenv_add_default_builtins(lenv* e)
     lenv_add_builtin(e, "def", builtin_def);
     lenv_add_builtin(e, "\\", builtin_lambda);
     lenv_add_builtin(e, "=", builtin_put);
+
+    // builtin definitions
+    const int num_definitions = 1;
+    const char* definitions[num_definitions];
+
+    // `fun` definition, which allows for, e.g., "fun {add-together x y} {+ x y}"
+    definitions[0] = "def {fun} (\\ {args body} {def (head args) (\\ (tail args) body)})";
+
+    for (int i = 0; i < num_definitions; i++) {
+        mpc_result_t r;
+        if (mpc_parse("<stdin>", definitions[i], g->lispy, &r)) {
+            lval* x = lval_read(r.output);
+            x = lval_eval(e, x);
+            lval_del(x);
+            mpc_ast_delete(r.output);
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////

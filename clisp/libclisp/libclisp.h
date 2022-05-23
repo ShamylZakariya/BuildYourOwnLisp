@@ -7,8 +7,10 @@
 
 struct lval;
 struct lenv;
+struct lgrammar;
 typedef struct lval lval;
 typedef struct lenv lenv;
+typedef struct lgrammar lgrammar;
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -78,18 +80,18 @@ lval* lenv_get(lenv* e, lval* k);
 void lenv_put(lenv* e, lval* k, lval* v);
 void lenv_def(lenv* e, lval* k, lval* v);
 void lenv_add_builtin(lenv* e, char* name, lbuiltin func);
-void lenv_add_default_builtins(lenv* e);
+void lenv_add_default_builtins(lenv* e, lgrammar* g);
 
 ///////////////////////////////////////////////////////////////////////
 
-typedef struct {
+struct lgrammar {
     mpc_parser_t* number;
     mpc_parser_t* symbol;
     mpc_parser_t* sexpr;
     mpc_parser_t* qexpr;
     mpc_parser_t* expr;
     mpc_parser_t* lispy;
-} lgrammar;
+};
 
 lgrammar* lgrammar_new();
 void lgrammar_del(lgrammar* grammar);

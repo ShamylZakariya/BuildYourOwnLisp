@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 {
     lgrammar* grammar = lgrammar_new();
     lenv* env = lenv_new();
-    lenv_add_default_builtins(env);
+    lenv_add_default_builtins(env, grammar);
 
     puts("Lispy Version 0.0.0.0.1");
     puts("Press Ctrl+c to Exit\n");
