@@ -15,7 +15,7 @@ int main(int argc, char** argv)
     puts("Press Ctrl+c to Exit\n");
 
     while (1) {
-        char* input = readline("lispy >");
+        char* input = readline("lispy> ");
         add_history(input);
 
         mpc_result_t r;
