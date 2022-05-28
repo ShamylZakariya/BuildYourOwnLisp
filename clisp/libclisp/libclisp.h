@@ -47,6 +47,7 @@ typedef struct lval {
     struct lval** cell;
 } lval;
 
+lval* lval_load(lenv* e, char* file);
 lval* lval_copy(lval* v);
 lval* lval_num(long x);
 lval* lval_sym(char* s);
@@ -70,13 +71,14 @@ void lval_println(lval* v);
 ///////////////////////////////////////////////////////////////////////
 
 struct lenv {
+    mpc_parser_t* lispy;
     lenv* parent;
     int count;
     char** syms;
     lval** vals;
 };
 
-lenv* lenv_new();
+lenv* lenv_new(mpc_parser_t* lispy);
 lenv* lenv_copy(lenv* e);
 void lenv_del(lenv* e);
 lval* lenv_get(lenv* e, lval* k);
@@ -91,6 +93,7 @@ struct lgrammar {
     mpc_parser_t* number;
     mpc_parser_t* symbol;
     mpc_parser_t* string;
+    mpc_parser_t* comment;
     mpc_parser_t* sexpr;
     mpc_parser_t* qexpr;
     mpc_parser_t* expr;

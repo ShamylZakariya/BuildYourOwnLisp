@@ -26,6 +26,47 @@
     LASSERT(args, args->cell[index]->count != 0, \
         "Function '%s' passed {} for argument %i.", func, index);
 
+static lval* builtin_load(lenv* e, lval* a)
+{
+    LASSERT_NUM("load", a, 1);
+    LASSERT_TYPE("load", a, 0, LVAL_STR);
+
+    // parse file given by string name
+    mpc_result_t r;
+    if (mpc_parse_contents(a->cell[0]->str, e->lispy, &r)) {
+        // read contents
+        lval* expr = lval_read(r.output);
+        mpc_ast_delete(r.output);
+
+        // evaluate each expression
+        while (expr->count) {
+            lval* x = lval_pop(expr, 0);
+            x = lval_eval(e, x);
+
+            // if we got an error, print it
+            if (x->type == LVAL_ERR) {
+                lval_println(x);
+            }
+            lval_del(x);
+        }
+
+        lval_del(expr);
+        lval_del(a);
+
+        // return empty list
+        return lval_sexpr();
+    } else {
+        char* err_msg = mpc_err_string(r.error);
+        mpc_err_delete(r.error);
+
+        lval* err = lval_err("Could not load library: %s", err_msg);
+        free(err_msg);
+        lval_del(a);
+
+        return err;
+    }
+}
+
 static lval* builtin_head(lenv* e, lval* a)
 {
     // error check
@@ -349,6 +390,27 @@ static lval* builtin_lambda(lenv* e, lval* a)
     return lval_lambda(formals, body);
 }
 
+static lval* builtin_print(lenv* e, lval* a)
+{
+    for (int i = 0; i < a->count; i++) {
+        lval_print(a->cell[i]);
+        putchar(' ');
+    }
+    putchar('\n');
+    lval_del(a);
+    return lval_sexpr();
+}
+
+static lval* builtin_error(lenv* e, lval* a)
+{
+    LASSERT_NUM("error", a, 1);
+    LASSERT_TYPE("error", a, 0, LVAL_STR);
+
+    lval* err = lval_err(a->cell[0]->str);
+    lval_del(a);
+    return err;
+}
+
 static void lval_print_str(lval* v)
 {
     char* escaped = malloc(strlen(v->str) + 1);
@@ -424,6 +486,12 @@ char* ltype_name(int t)
     default:
         return "Unknown";
     }
+}
+
+lval* lval_load(lenv* e, char* file)
+{
+    lval* args = lval_add(lval_sexpr(), lval_str(file));
+    return builtin_load(e, args);
 }
 
 lval* lval_copy(lval* v)
@@ -530,7 +598,7 @@ lval* lval_lambda(lval* formals, lval* body)
     lval* v = lval_new();
     v->type = LVAL_FUN;
 
-    v->env = lenv_new();
+    v->env = lenv_new(NULL);
     v->formals = formals;
     v->body = body;
     return v;
@@ -594,6 +662,9 @@ lval* lval_read(mpc_ast_t* t)
     }
 
     for (int i = 0; i < t->children_num; i++) {
+        if (strstr(t->children[i]->tag, "comment")) {
+            continue;
+        }
         if (strcmp(t->children[i]->contents, "(") == 0) {
             continue;
         }
@@ -804,9 +875,10 @@ void lval_println(lval* v)
 
 ///////////////////////////////////////////////////////////////////////
 
-lenv* lenv_new()
+lenv* lenv_new(mpc_parser_t* lispy)
 {
     lenv* e = malloc(sizeof(lenv));
+    e->lispy = lispy;
     e->parent = NULL;
     e->count = 0;
     e->syms = NULL;
@@ -816,7 +888,7 @@ lenv* lenv_new()
 
 lenv* lenv_copy(lenv* e)
 {
-    lenv* n = lenv_new();
+    lenv* n = lenv_new(e->lispy);
     n->parent = e->parent;
     n->count = e->count;
     n->syms = malloc(sizeof(char*) * n->count);
@@ -920,6 +992,11 @@ void lenv_add_default_builtins(lenv* e, lgrammar* g)
     lenv_add_builtin(e, ">=", builtin_ge);
     lenv_add_builtin(e, "<=", builtin_le);
 
+    // helpers
+    lenv_add_builtin(e, "load", builtin_load);
+    lenv_add_builtin(e, "print", builtin_print);
+    lenv_add_builtin(e, "error", builtin_error);
+
     // builtin definitions
     const int num_definitions = 5;
     const char* definitions[num_definitions];
@@ -954,6 +1031,7 @@ lgrammar* lgrammar_new()
     g->number = mpc_new("number");
     g->symbol = mpc_new("symbol");
     g->string = mpc_new("string");
+    g->comment = mpc_new("comment");
     g->sexpr = mpc_new("sexpr");
     g->qexpr = mpc_new("qexpr");
     g->expr = mpc_new("expr");
@@ -964,20 +1042,22 @@ lgrammar* lgrammar_new()
         number   : /-?[0-9]+/ ;                                         \
         symbol   : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&%]+/ ;                  \
         string   : /\"(\\\\.|[^\"])*\"/ ;                               \
+        comment  : /;[^\\r\\n]*/ ;                                      \
         sexpr    : '(' <expr>* ')' ;                                    \
         qexpr    : '{' <expr>* '}' ;                                    \
         expr     : <number> | <symbol> | <string>                       \
-                   | <sexpr> | <qexpr> ;                                \
+                   | <comment> | <sexpr> | <qexpr> ;                    \
         lispy    : /^/ <expr>* /$/ ;                                    \
     ",
-        g->number, g->symbol, g->string, g->sexpr, g->qexpr, g->expr, g->lispy);
+        g->number, g->symbol, g->string, g->comment,
+        g->sexpr, g->qexpr, g->expr, g->lispy);
     return g;
 }
 
 void lgrammar_del(lgrammar* g)
 {
-    mpc_cleanup(7,
-        g->number, g->symbol, g->string,
+    mpc_cleanup(8,
+        g->number, g->symbol, g->string, g->comment,
         g->sexpr, g->qexpr, g->expr, g->lispy);
     free(g);
 }
