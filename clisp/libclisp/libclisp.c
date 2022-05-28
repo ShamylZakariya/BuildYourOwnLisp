@@ -996,31 +996,6 @@ void lenv_add_default_builtins(lenv* e, lgrammar* g)
     lenv_add_builtin(e, "load", builtin_load);
     lenv_add_builtin(e, "print", builtin_print);
     lenv_add_builtin(e, "error", builtin_error);
-
-    // builtin definitions
-    const int num_definitions = 5;
-    const char* definitions[num_definitions];
-
-    // `fun` definition, which allows for, e.g., "fun {add-together x y} {+ x y}"
-    definitions[0] = "def {fun} (\\ {args body} {def (head args) (\\ (tail args) body)})";
-
-    // the mechanisms currying will use
-    definitions[1] = "fun {unpack f xs} {eval (join (list f) xs)}";
-    definitions[2] = "fun {pack f & xs} {f xs}";
-
-    // currying
-    definitions[3] = "def {uncurry} pack";
-    definitions[4] = "def {curry} unpack";
-
-    for (int i = 0; i < num_definitions; i++) {
-        mpc_result_t r;
-        if (mpc_parse("<stdin>", definitions[i], g->lispy, &r)) {
-            lval* x = lval_read(r.output);
-            x = lval_eval(e, x);
-            lval_del(x);
-            mpc_ast_delete(r.output);
-        }
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////

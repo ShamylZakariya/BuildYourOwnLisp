@@ -9,7 +9,16 @@ int main(int argc, char** argv)
 {
     lgrammar* grammar = lgrammar_new();
     lenv* env = lenv_new(grammar->lispy);
+
+    // load builtins
     lenv_add_default_builtins(env, grammar);
+
+    // load the stdlib
+    lval* result = lval_load(env, "lib/std.lspy");
+    if (result->type == LVAL_ERR) {
+        lval_println(result);
+    }
+    lval_del(result);
 
     if (argc == 1) {
         puts("Lispy Version 0.0.0.0.1");
