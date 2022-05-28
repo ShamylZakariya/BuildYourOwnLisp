@@ -20,6 +20,7 @@ enum {
     LVAL_ERR,
     LVAL_NUM,
     LVAL_SYM,
+    LVAL_STR,
     LVAL_FUN,
     LVAL_SEXPR,
     LVAL_QEXPR
@@ -34,6 +35,7 @@ typedef struct lval {
     long num;
     char* err;
     char* sym;
+    char* str;
 
     // function - either builtin or defined by user
     lbuiltin builtin;
@@ -48,6 +50,7 @@ typedef struct lval {
 lval* lval_copy(lval* v);
 lval* lval_num(long x);
 lval* lval_sym(char* s);
+lval* lval_str(char* s);
 lval* lval_sexpr();
 lval* lval_qexpr();
 lval* lval_fun(lbuiltin fun);
@@ -87,6 +90,7 @@ void lenv_add_default_builtins(lenv* e, lgrammar* g);
 struct lgrammar {
     mpc_parser_t* number;
     mpc_parser_t* symbol;
+    mpc_parser_t* string;
     mpc_parser_t* sexpr;
     mpc_parser_t* qexpr;
     mpc_parser_t* expr;

@@ -200,6 +200,8 @@ static int lval_eq(lval* x, lval* y)
         return (strcmp(x->err, y->err) == 0);
     case LVAL_SYM:
         return (strcmp(x->sym, y->sym) == 0);
+    case LVAL_STR:
+        return (strcmp(x->str, y->str) == 0);
 
     case LVAL_FUN:
         if (x->builtin || y->builtin) {
@@ -347,6 +349,15 @@ static lval* builtin_lambda(lenv* e, lval* a)
     return lval_lambda(formals, body);
 }
 
+static void lval_print_str(lval* v)
+{
+    char* escaped = malloc(strlen(v->str) + 1);
+    strcpy(escaped, v->str);
+    escaped = mpcf_escape(escaped);
+    printf("\"%s\"", escaped);
+    free(escaped);
+}
+
 static void lval_expr_print(lval* v, char open, char close)
 {
     putchar(open);
@@ -359,6 +370,21 @@ static void lval_expr_print(lval* v, char open, char close)
     putchar(close);
 }
 
+static lval* lval_read_str(mpc_ast_t* t)
+{
+    // cut off final quote char
+    t->contents[strlen(t->contents) - 1] = '\0';
+    // copy out the substring skipping first quote char
+    char* unescaped = malloc(strlen(t->contents + 1) + 1);
+    strcpy(unescaped, t->contents + 1);
+    // perform unescapement
+    unescaped = mpcf_unescape(unescaped);
+    // construct new lval
+    lval* str = lval_str(unescaped);
+    free(unescaped);
+    return str;
+}
+
 ///////////////////////////////////////////////////////////////////////
 
 static lval* lval_new()
@@ -368,6 +394,7 @@ static lval* lval_new()
     v->num = 0;
     v->err = NULL;
     v->sym = NULL;
+    v->str = NULL;
     v->builtin = NULL;
     v->env = NULL;
     v->formals = NULL;
@@ -388,6 +415,8 @@ char* ltype_name(int t)
         return "Error";
     case LVAL_SYM:
         return "Symbol";
+    case LVAL_STR:
+        return "String";
     case LVAL_SEXPR:
         return "S-Expression";
     case LVAL_QEXPR:
@@ -426,6 +455,11 @@ lval* lval_copy(lval* v)
         strcpy(x->sym, v->sym);
         break;
 
+    case LVAL_STR:
+        x->str = malloc(strlen(v->str) + 1);
+        strcpy(x->str, v->str);
+        break;
+
     case LVAL_SEXPR:
     case LVAL_QEXPR:
         x->count = v->count;
@@ -453,6 +487,15 @@ lval* lval_sym(char* s)
     v->type = LVAL_SYM;
     v->sym = malloc(strlen(s) + 1);
     strcpy(v->sym, s);
+    return v;
+}
+
+lval* lval_str(char* s)
+{
+    lval* v = lval_new();
+    v->type = LVAL_STR;
+    v->str = malloc(strlen(s) + 1);
+    strcpy(v->str, s);
     return v;
 }
 
@@ -532,6 +575,9 @@ lval* lval_read(mpc_ast_t* t)
     }
     if (strstr(t->tag, "symbol")) {
         return lval_sym(t->contents);
+    }
+    if (strstr(t->tag, "string")) {
+        return lval_read_str(t);
     }
 
     lval* x = NULL;
@@ -700,6 +746,9 @@ void lval_del(lval* v)
     case LVAL_SYM:
         free(v->sym);
         break;
+    case LVAL_STR:
+        free(v->str);
+        break;
     case LVAL_QEXPR:
     case LVAL_SEXPR: {
         for (int i = 0; i < v->count; i++) {
@@ -723,6 +772,9 @@ void lval_print(lval* v)
         break;
     case LVAL_SYM:
         printf("%s", v->sym);
+        break;
+    case LVAL_STR:
+        lval_print_str(v);
         break;
     case LVAL_FUN:
         if (v->builtin) {
@@ -901,6 +953,7 @@ lgrammar* lgrammar_new()
     lgrammar* g = malloc(sizeof(lgrammar));
     g->number = mpc_new("number");
     g->symbol = mpc_new("symbol");
+    g->string = mpc_new("string");
     g->sexpr = mpc_new("sexpr");
     g->qexpr = mpc_new("qexpr");
     g->expr = mpc_new("expr");
@@ -910,18 +963,22 @@ lgrammar* lgrammar_new()
         "                                                               \
         number   : /-?[0-9]+/ ;                                         \
         symbol   : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&%]+/ ;                  \
+        string   : /\"(\\\\.|[^\"])*\"/ ;                               \
         sexpr    : '(' <expr>* ')' ;                                    \
         qexpr    : '{' <expr>* '}' ;                                    \
-        expr     : <number> | <symbol> | <sexpr> | <qexpr> ;            \
+        expr     : <number> | <symbol> | <string>                       \
+                   | <sexpr> | <qexpr> ;                                \
         lispy    : /^/ <expr>* /$/ ;                                    \
     ",
-        g->number, g->symbol, g->sexpr, g->qexpr, g->expr, g->lispy);
+        g->number, g->symbol, g->string, g->sexpr, g->qexpr, g->expr, g->lispy);
     return g;
 }
 
 void lgrammar_del(lgrammar* g)
 {
-    mpc_cleanup(6, g->number, g->symbol, g->sexpr, g->qexpr, g->expr, g->lispy);
+    mpc_cleanup(7,
+        g->number, g->symbol, g->string,
+        g->sexpr, g->qexpr, g->expr, g->lispy);
     free(g);
 }
 
